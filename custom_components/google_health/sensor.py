@@ -264,6 +264,22 @@ ACTIVITY = [
 
 # -- Coração --------------------------------------------------------------------
 
+
+def _nz(v: float | None) -> float | None:
+    """0 nos campos opcionais da API = ausente."""
+    return v or None
+
+
+def _hrv_last(d: dict) -> tuple[float | None, str | None]:
+    """RMSSD (Fitbit/Pixel); Apple Health só manda SDNN."""
+    b = _last(d, "heart-rate-variability")
+    if v := _nz(num(b.get("rootMeanSquareOfSuccessiveDifferencesMilliseconds"))):
+        return _round(v), "RMSSD"
+    if v := _nz(num(b.get("standardDeviationMilliseconds"))):
+        return _round(v), "SDNN"
+    return None, None
+
+
 HEART = [
     _d("heart_rate", "Frequência cardíaca", DEV_HEART, "fast",
        lambda d: num(_last(d, "heart-rate").get("beatsPerMinute")),
@@ -283,14 +299,13 @@ HEART = [
        lambda d: _round(num(_last(d, "daily-heart-rate-variability").get("averageHeartRateVariabilityMilliseconds"))),
        native_unit_of_measurement=MS, icon="mdi:heart-settings", **MEAS,
        attrs_fn=lambda d: {**_measured("daily-heart-rate-variability")(d),
-                           "rmssd_sono_profundo_ms": _round(num(_last(d, "daily-heart-rate-variability").get("deepSleepRootMeanSquareOfSuccessiveDifferencesMilliseconds"))),
-                           "fc_nao_rem": num(_last(d, "daily-heart-rate-variability").get("nonRemHeartRateBeatsPerMinute")),
-                           "entropia": _round(num(_last(d, "daily-heart-rate-variability").get("entropy")), 2)}),
+                           "rmssd_sono_profundo_ms": _round(_nz(num(_last(d, "daily-heart-rate-variability").get("deepSleepRootMeanSquareOfSuccessiveDifferencesMilliseconds")))),
+                           "fc_nao_rem": _nz(num(_last(d, "daily-heart-rate-variability").get("nonRemHeartRateBeatsPerMinute"))),
+                           "entropia": _round(_nz(num(_last(d, "daily-heart-rate-variability").get("entropy"))), 2)}),
     _d("hrv_last", "Variabilidade da FC (última medição)", DEV_HEART, "fast",
-       lambda d: _round(num(_last(d, "heart-rate-variability").get("rootMeanSquareOfSuccessiveDifferencesMilliseconds"))),
+       lambda d: _hrv_last(d)[0],
        native_unit_of_measurement=MS, icon="mdi:heart-settings-outline", **MEAS,
-       attrs_fn=lambda d: {**_measured("heart-rate-variability")(d),
-                           "sdnn_ms": _round(num(_last(d, "heart-rate-variability").get("standardDeviationMilliseconds")))}),
+       attrs_fn=lambda d: {**_measured("heart-rate-variability")(d), "metrica": _hrv_last(d)[1]}),
     _d("spo2", "Oxigenação do sangue (SpO2)", DEV_HEART, "fast",
        lambda d: _round(num(_last(d, "daily-oxygen-saturation").get("averagePercentage"))),
        native_unit_of_measurement=PERCENTAGE, icon="mdi:water-percent", **MEAS,
@@ -410,7 +425,8 @@ def _resp_sleep(d: dict) -> dict[str, Any]:
     return _last(d, "respiratory-rate-sleep-summary")
 
 
-DUR_H = {**MIN, "suggested_unit_of_measurement": UnitOfTime.HOURS, **MEAS}
+DUR_H = {**MIN, "suggested_unit_of_measurement": UnitOfTime.HOURS,
+         "suggested_display_precision": 1, **MEAS}
 SLEEP = [
     _d("sleep_asleep", "Tempo dormindo", DEV_SLEEP, "slow", _summary("minutesAsleep"),
        icon="mdi:sleep", **DUR_H, attrs_fn=_sleep_attrs),
@@ -429,7 +445,8 @@ SLEEP = [
     _d("sleep_rem", "Sono REM", DEV_SLEEP, "slow", lambda d: stage_minutes(_sleep(d), "REM"),
        icon="mdi:eye-refresh", **MIN, **MEAS),
     _d("sleep_awakenings", "Despertares", DEV_SLEEP, "slow",
-       lambda d: stage_count(_sleep(d), "AWAKE"), icon="mdi:alarm-light", **MEAS),
+       lambda d: int(c) if (c := stage_count(_sleep(d), "AWAKE")) is not None else None,
+       icon="mdi:alarm-light", **MEAS),
     _d("sleep_efficiency", "Eficiência do sono", DEV_SLEEP, "slow",
        lambda d: sleep_efficiency(_sleep(d)), native_unit_of_measurement=PERCENTAGE,
        icon="mdi:percent", **MEAS),
@@ -600,11 +617,14 @@ ACCOUNT = [
 
 
 def _last_sync(fast: dict, slow: dict) -> datetime | None:
-    moments = [when(dp) for dp in (fast.get("last") or {}).values()]
+    # daily-heart-rate-zones é recalculada todo dia pela Fitbit: não indica sync.
+    moments = [when(dp) for t, dp in (fast.get("last") or {}).items() if t != "daily-heart-rate-zones"]
     moments += [when(dp) for dp in (slow.get("last") or {}).values()]
     moments += [when(p) for p in (slow.get("sleep") or [])[:1] + (slow.get("exercise") or [])[:1]]
     # dias com passos contam como "dado recebido" (meio-dia local)
-    for d in (fast.get("roll", {}).get("steps") or {}):
+    for d, v in (fast.get("roll", {}).get("steps") or {}).items():
+        if not _steps(v):
+            continue
         moments.append(dt_util.as_utc(datetime(d.year, d.month, d.day, 12, tzinfo=dt_util.get_default_time_zone())))
     now = dt_util.utcnow()
     return newest(*(m for m in moments if m and m <= now))
