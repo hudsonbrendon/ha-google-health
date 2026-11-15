@@ -75,7 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoogleHealthConfigEntry)
         entry_type=dr.DeviceEntryType.SERVICE,
     )
 
-    missing = [s.rsplit(".", 2)[-2] for s in EXTRA_SCOPES if s not in scopes]
+    missing = [label for s, label in EXTRA_SCOPES.items() if s not in scopes]
     if missing:
         ir.async_create_issue(
             hass,
@@ -84,7 +84,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoogleHealthConfigEntry)
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
             translation_key="extra_scopes",
-            translation_placeholders={"scopes": ", ".join(sorted(set(missing)))},
+            translation_placeholders={"scopes": ", ".join(missing)},
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, f"extra_scopes_{entry.entry_id}")

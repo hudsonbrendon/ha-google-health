@@ -42,13 +42,14 @@ OAUTH_SCOPES = [
     SCOPE_MEASUREMENTS_WRITE,
     SCOPE_NUTRITION_WRITE,
 ]
-EXTRA_SCOPES = [
-    SCOPE_ECG,
-    SCOPE_IRN,
-    SCOPE_ACTIVITY_WRITE,
-    SCOPE_MEASUREMENTS_WRITE,
-    SCOPE_NUTRITION_WRITE,
-]
+# Escopos extras → rótulo do aviso em Reparos.
+EXTRA_SCOPES = {
+    SCOPE_ECG: "ECG",
+    SCOPE_IRN: "ritmo irregular",
+    SCOPE_ACTIVITY_WRITE: "gravar atividade/exercícios",
+    SCOPE_MEASUREMENTS_WRITE: "gravar medições (peso)",
+    SCOPE_NUTRITION_WRITE: "gravar nutrição/água",
+}
 
 # Dispositivos (grupos) — cada um vira um aparelho no HA.
 DEV_ACCOUNT = "account"
