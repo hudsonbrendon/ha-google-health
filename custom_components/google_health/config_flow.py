@@ -30,8 +30,8 @@ class OAuth2FlowHandler(
             "scope": " ".join(OAUTH_SCOPES),
             "access_type": "offline",
             "prompt": "consent",
-            # Permite desmarcar escopos extras (ECG, escrita) na tela do Google.
-            "include_granted_scopes": "true",
+            # Sem include_granted_scopes: o client OAuth é compartilhado com outras
+            # integrações (Drive, YouTube) e o Google recusa misturar esses escopos.
         }
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
