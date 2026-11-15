@@ -1,0 +1,183 @@
+{
+  "application_credentials": {
+    "description": "Siga as [instruções]({more_info_url}) da [tela de consentimento OAuth]({oauth_consent_url}) para dar ao Home Assistant acesso aos seus dados do Google Health. Depois crie as credenciais:\n1. Abra [Credenciais]({oauth_creds_url}) e clique em **Criar credenciais**.\n1. Escolha **ID do cliente OAuth**.\n1. Tipo de aplicativo: **Aplicativo da Web**."
+  },
+  "config": {
+    "abort": {
+      "already_configured": "Essa conta já está configurada.",
+      "api_not_enabled": "A Google Health API não está ativada no seu projeto do Google Cloud. Ative em [Google Cloud Console]({url}), aguarde alguns minutos e tente de novo.",
+      "cannot_connect": "Não foi possível conectar ao Google Health.",
+      "missing_configuration": "Configure as credenciais de aplicativo (OAuth) antes.",
+      "missing_profile_scope": "Falta a permissão de leitura do perfil do Google Health. Tente de novo e marque todas as permissões.",
+      "wrong_account": "Conta diferente: entre com a mesma conta Google.",
+      "reauth_successful": "Reautenticado com sucesso.",
+      "reconfigure_successful": "Reconfigurado com sucesso."
+    },
+    "create_entry": {
+      "default": "Autenticado com sucesso."
+    },
+    "step": {
+      "pick_implementation": {
+        "title": "Escolha as credenciais"
+      },
+      "reauth_confirm": {
+        "title": "Reautenticar Google Health",
+        "description": "A integração Google Health precisa entrar de novo na sua conta Google."
+      }
+    }
+  },
+  "issues": {
+    "extra_scopes": {
+      "title": "Google Health: permissões extras disponíveis",
+      "description": "A conta ainda não concedeu: {scopes}. Sem elas ficam de fora o ECG, os alertas de ritmo irregular e os serviços de registro (peso, água, refeição, exercício). Para liberar: Configurações › Dispositivos e serviços › Google Health › ⋮ › Reconfigurar, e aceite todas as permissões."
+    }
+  },
+  "services": {
+    "buscar_dados": {
+      "name": "Buscar dados",
+      "description": "Devolve os data points crus de qualquer tipo de dado do Google Health num intervalo.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "Conta Google Health (opcional se houver só uma)."
+        },
+        "tipo": {
+          "name": "Tipo de dado",
+          "description": "Tipo do Google Health (ex.: heart-rate, sleep, exercise)."
+        },
+        "inicio": {
+          "name": "Início",
+          "description": "Início do intervalo."
+        },
+        "fim": {
+          "name": "Fim",
+          "description": "Fim do intervalo."
+        },
+        "limite": {
+          "name": "Limite",
+          "description": "Máximo de pontos."
+        },
+        "agregado_diario": {
+          "name": "Agregado diário",
+          "description": "Somas/médias por dia em vez de pontos individuais."
+        }
+      }
+    },
+    "registrar_peso": {
+      "name": "Registrar peso",
+      "description": "Grava uma pesagem no Google Health.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "Conta Google Health."
+        },
+        "peso": {
+          "name": "Peso",
+          "description": "Peso em kg."
+        },
+        "gordura_corporal": {
+          "name": "Gordura corporal",
+          "description": "Percentual de gordura (opcional)."
+        },
+        "quando": {
+          "name": "Quando",
+          "description": "Data/hora da medição (padrão: agora)."
+        }
+      }
+    },
+    "registrar_agua": {
+      "name": "Registrar água",
+      "description": "Grava água ingerida.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "Conta Google Health."
+        },
+        "quantidade": {
+          "name": "Quantidade",
+          "description": "Mililitros."
+        },
+        "quando": {
+          "name": "Quando",
+          "description": "Data/hora (padrão: agora)."
+        }
+      }
+    },
+    "registrar_refeicao": {
+      "name": "Registrar refeição",
+      "description": "Grava um alimento/refeição no diário de nutrição.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "Conta Google Health."
+        },
+        "nome": {
+          "name": "Nome",
+          "description": "O que foi consumido."
+        },
+        "refeicao": {
+          "name": "Refeição",
+          "description": "Café da manhã, almoço, jantar, lanche..."
+        },
+        "calorias": {
+          "name": "Calorias",
+          "description": "kcal."
+        },
+        "carboidratos": {
+          "name": "Carboidratos",
+          "description": "Gramas."
+        },
+        "gorduras": {
+          "name": "Gorduras",
+          "description": "Gramas."
+        },
+        "proteinas": {
+          "name": "Proteínas",
+          "description": "Gramas."
+        },
+        "quando": {
+          "name": "Quando",
+          "description": "Data/hora (padrão: agora)."
+        }
+      }
+    },
+    "registrar_exercicio": {
+      "name": "Registrar exercício",
+      "description": "Grava uma sessão de exercício.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "Conta Google Health."
+        },
+        "tipo": {
+          "name": "Tipo",
+          "description": "Tipo do exercício (ex.: STRENGTH_TRAINING, RUNNING, WALKING)."
+        },
+        "duracao": {
+          "name": "Duração",
+          "description": "Minutos."
+        },
+        "inicio": {
+          "name": "Início",
+          "description": "Início (padrão: agora menos a duração)."
+        },
+        "nome": {
+          "name": "Nome",
+          "description": "Nome exibido."
+        },
+        "calorias": {
+          "name": "Calorias",
+          "description": "kcal."
+        },
+        "distancia": {
+          "name": "Distância",
+          "description": "km."
+        },
+        "notas": {
+          "name": "Notas",
+          "description": "Observações."
+        }
+      }
+    }
+  }
+}

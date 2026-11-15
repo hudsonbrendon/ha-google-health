@@ -1,0 +1,436 @@
+{
+  "buscar_dados": {
+    "fields": {
+      "config_entry_id": {
+        "selector": {
+          "config_entry": {
+            "integration": "google_health"
+          }
+        }
+      },
+      "tipo": {
+        "required": true,
+        "selector": {
+          "select": {
+            "options": [
+              "steps",
+              "distance",
+              "active-energy-burned",
+              "basal-energy-burned",
+              "total-calories",
+              "floors",
+              "altitude",
+              "active-minutes",
+              "active-zone-minutes",
+              "activity-level",
+              "sedentary-period",
+              "time-in-heart-rate-zone",
+              "calories-in-heart-rate-zone",
+              "swim-lengths-data",
+              "exercise",
+              "heart-rate",
+              "daily-resting-heart-rate",
+              "heart-rate-variability",
+              "daily-heart-rate-variability",
+              "daily-heart-rate-zones",
+              "oxygen-saturation",
+              "daily-oxygen-saturation",
+              "daily-respiratory-rate",
+              "respiratory-rate-sleep-summary",
+              "vo2-max",
+              "daily-vo2-max",
+              "run-vo2-max",
+              "weight",
+              "height",
+              "body-fat",
+              "core-body-temperature",
+              "blood-glucose",
+              "daily-sleep-temperature-derivations",
+              "sleep",
+              "hydration-log",
+              "nutrition-log",
+              "food",
+              "electrocardiogram",
+              "irregular-rhythm-notification"
+            ],
+            "custom_value": true
+          }
+        }
+      },
+      "inicio": {
+        "selector": {
+          "datetime": {}
+        }
+      },
+      "fim": {
+        "selector": {
+          "datetime": {}
+        }
+      },
+      "limite": {
+        "default": 25,
+        "selector": {
+          "number": {
+            "min": 1,
+            "max": 10000,
+            "step": 1,
+            "unit_of_measurement": "",
+            "mode": "box"
+          }
+        }
+      },
+      "agregado_diario": {
+        "default": false,
+        "selector": {
+          "boolean": {}
+        }
+      }
+    }
+  },
+  "registrar_peso": {
+    "fields": {
+      "config_entry_id": {
+        "selector": {
+          "config_entry": {
+            "integration": "google_health"
+          }
+        }
+      },
+      "peso": {
+        "required": true,
+        "selector": {
+          "number": {
+            "min": 10,
+            "max": 400,
+            "step": 0.05,
+            "unit_of_measurement": "kg",
+            "mode": "box"
+          }
+        }
+      },
+      "gordura_corporal": {
+        "selector": {
+          "number": {
+            "min": 1,
+            "max": 80,
+            "step": 0.1,
+            "unit_of_measurement": "%",
+            "mode": "box"
+          }
+        }
+      },
+      "quando": {
+        "selector": {
+          "datetime": {}
+        }
+      }
+    }
+  },
+  "registrar_agua": {
+    "fields": {
+      "config_entry_id": {
+        "selector": {
+          "config_entry": {
+            "integration": "google_health"
+          }
+        }
+      },
+      "quantidade": {
+        "required": true,
+        "selector": {
+          "number": {
+            "min": 1,
+            "max": 5000,
+            "step": 1,
+            "unit_of_measurement": "mL",
+            "mode": "box"
+          }
+        }
+      },
+      "quando": {
+        "selector": {
+          "datetime": {}
+        }
+      }
+    }
+  },
+  "registrar_refeicao": {
+    "fields": {
+      "config_entry_id": {
+        "selector": {
+          "config_entry": {
+            "integration": "google_health"
+          }
+        }
+      },
+      "nome": {
+        "required": true,
+        "selector": {
+          "text": {}
+        }
+      },
+      "refeicao": {
+        "selector": {
+          "select": {
+            "options": [
+              "BEFORE_BREAKFAST",
+              "BREAKFAST",
+              "BEFORE_LUNCH",
+              "LUNCH",
+              "BEFORE_DINNER",
+              "DINNER",
+              "AFTER_DINNER",
+              "SNACK",
+              "ANYTIME"
+            ]
+          }
+        }
+      },
+      "calorias": {
+        "selector": {
+          "number": {
+            "min": 0,
+            "max": 5000,
+            "step": 1,
+            "unit_of_measurement": "kcal",
+            "mode": "box"
+          }
+        }
+      },
+      "carboidratos": {
+        "selector": {
+          "number": {
+            "min": 0,
+            "max": 1000,
+            "step": 0.1,
+            "unit_of_measurement": "g",
+            "mode": "box"
+          }
+        }
+      },
+      "gorduras": {
+        "selector": {
+          "number": {
+            "min": 0,
+            "max": 1000,
+            "step": 0.1,
+            "unit_of_measurement": "g",
+            "mode": "box"
+          }
+        }
+      },
+      "proteinas": {
+        "selector": {
+          "number": {
+            "min": 0,
+            "max": 1000,
+            "step": 0.1,
+            "unit_of_measurement": "g",
+            "mode": "box"
+          }
+        }
+      },
+      "quando": {
+        "selector": {
+          "datetime": {}
+        }
+      }
+    }
+  },
+  "registrar_exercicio": {
+    "fields": {
+      "config_entry_id": {
+        "selector": {
+          "config_entry": {
+            "integration": "google_health"
+          }
+        }
+      },
+      "tipo": {
+        "required": true,
+        "selector": {
+          "select": {
+            "options": [
+              {
+                "value": "WALKING",
+                "label": "Caminhada"
+              },
+              {
+                "value": "RUNNING",
+                "label": "Corrida"
+              },
+              {
+                "value": "BIKING",
+                "label": "Ciclismo"
+              },
+              {
+                "value": "OUTDOOR_BIKE",
+                "label": "Ciclismo ao ar livre"
+              },
+              {
+                "value": "STATIONARY_BIKE",
+                "label": "Bicicleta ergométrica"
+              },
+              {
+                "value": "SPINNING",
+                "label": "Spinning"
+              },
+              {
+                "value": "SWIMMING",
+                "label": "Natação"
+              },
+              {
+                "value": "SWIMMING_POOL",
+                "label": "Natação (piscina)"
+              },
+              {
+                "value": "STRENGTH_TRAINING",
+                "label": "Musculação"
+              },
+              {
+                "value": "WEIGHTS",
+                "label": "Musculação"
+              },
+              {
+                "value": "WEIGHTLIFTING",
+                "label": "Levantamento de peso"
+              },
+              {
+                "value": "FUNCTIONAL_STRENGTH_TRAINING",
+                "label": "Funcional"
+              },
+              {
+                "value": "HIIT",
+                "label": "HIIT"
+              },
+              {
+                "value": "YOGA",
+                "label": "Ioga"
+              },
+              {
+                "value": "PILATES",
+                "label": "Pilates"
+              },
+              {
+                "value": "ELLIPTICAL",
+                "label": "Elíptico"
+              },
+              {
+                "value": "TREADMILL",
+                "label": "Esteira"
+              },
+              {
+                "value": "TREADMILL_WALK",
+                "label": "Caminhada na esteira"
+              },
+              {
+                "value": "HIKING",
+                "label": "Trilha"
+              },
+              {
+                "value": "SOCCER",
+                "label": "Futebol"
+              },
+              {
+                "value": "DANCING",
+                "label": "Dança"
+              },
+              {
+                "value": "CROSSFIT",
+                "label": "CrossFit"
+              },
+              {
+                "value": "STRETCHING",
+                "label": "Alongamento"
+              },
+              {
+                "value": "ROWING_MACHINE",
+                "label": "Remo ergométrico"
+              },
+              {
+                "value": "WORKOUT",
+                "label": "Treino"
+              },
+              {
+                "value": "CARDIO_WORKOUT",
+                "label": "Cardio"
+              },
+              {
+                "value": "CORE_TRAINING",
+                "label": "Core"
+              },
+              {
+                "value": "MEDITATE",
+                "label": "Meditação"
+              },
+              {
+                "value": "TENNIS",
+                "label": "Tênis"
+              },
+              {
+                "value": "BOXING",
+                "label": "Boxe"
+              },
+              {
+                "value": "OTHER",
+                "label": "Outro"
+              }
+            ],
+            "custom_value": true
+          }
+        }
+      },
+      "duracao": {
+        "required": true,
+        "selector": {
+          "number": {
+            "min": 1,
+            "max": 1440,
+            "step": 1,
+            "unit_of_measurement": "min",
+            "mode": "box"
+          }
+        }
+      },
+      "inicio": {
+        "selector": {
+          "datetime": {}
+        }
+      },
+      "nome": {
+        "selector": {
+          "text": {}
+        }
+      },
+      "calorias": {
+        "selector": {
+          "number": {
+            "min": 0,
+            "max": 10000,
+            "step": 1,
+            "unit_of_measurement": "kcal",
+            "mode": "box"
+          }
+        }
+      },
+      "distancia": {
+        "selector": {
+          "number": {
+            "min": 0,
+            "max": 500,
+            "step": 0.01,
+            "unit_of_measurement": "km",
+            "mode": "box"
+          }
+        }
+      },
+      "notas": {
+        "selector": {
+          "text": {
+            "multiline": true
+          }
+        }
+      }
+    }
+  }
+}
