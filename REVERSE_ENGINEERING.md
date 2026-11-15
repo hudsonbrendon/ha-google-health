@@ -33,7 +33,8 @@ A integração do core pede só os 7 primeiros. Esta pede também ECG, IRN e esc
 | POST | `dataTypes/{t}/dataPoints:dailyRollUp` | `{range:{start,end:CivilDateTime}, windowSizeDays}` → um ponto por dia civil (dias vazios omitidos, ordem desc) |
 | POST | `dataTypes/{t}/dataPoints:rollUp` | idem por janela física (`windowSize: "3600s"`) |
 | GET | `dataTypes/{t}/dataPoints:reconcile` | funde fontes (`dataSourceFamily`: all-sources, google-wearables, google-sources, self-sources) |
-| POST/PATCH/DELETE | `dataTypes/{t}/dataPoints[/{id}]`, `:batchDelete` | escrita (retorna `Operation`) |
+| POST/PATCH | `dataTypes/{t}/dataPoints[/{id}]` | escrita (retorna `Operation`; origem gravada = `GOOGLE_WEB_API` + client id) |
+| POST | `dataTypes/{t}/dataPoints:batchDelete` `{names:[...]}` | apaga (o `DELETE` de um ponto só dá 404 — validado 15/11) |
 | GET | `dataTypes/exercise/dataPoints/{id}:exportExerciseTcx?alt=media` | TCX do treino |
 | * | `projects/{p}/subscribers[/subscriptions]` | webhooks (push) — exige registro no projeto Cloud |
 
@@ -80,6 +81,12 @@ Valores int64 vêm como **string** (`"countSum": "111"`), durações como `"1828
   activeZoneMinutes,averagePaceSecondsPerMeter,elevationGainMillimeters,runVo2Max,
   heartRateZoneDurations,mobilityMetrics}`, `splitSummaries[]`.
 - `dataSource.{platform (FITBIT|HEALTH_KIT|HEALTH_CONNECT|…), device.displayName, application.packageName, recordingMethod}`.
+
+## Escrita (validada 15/11/2026)
+
+`registrar_agua` com 1 mL criou o ponto, o sensor leu 0,001 L no mesmo minuto e o ponto foi
+apagado com `batchDelete`. Escopos extras liberados via Reconfigurar; `include_granted_scopes`
+NÃO pode ser usado (o client OAuth também tem Drive/YouTube e o Google recusa a mistura).
 
 ## Observações da conta testada
 
