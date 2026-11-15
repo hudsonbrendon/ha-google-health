@@ -65,7 +65,8 @@ Exercícios, minutos e calorias nos últimos 7 dias · 📅 **Exercícios**
 
 ### Google Health Conta
 Idade (perfil, passadas, unidades, fuso, IDs) · Membro desde · Aparelhos pareados ·
-**Último dado recebido** (com `dias_sem_dados` — mostra se o app parou de sincronizar).
+**Último dado recebido** (com `dias_sem_dados` — mostra se o app parou de sincronizar;
+no iPhone, confira Ajustes › Saúde › Acesso a Dados e Dispositivos › Google Health).
 Cada rastreador/balança Fitbit ou Pixel Watch pareado vira um dispositivo com
 **Bateria** e **Última sincronização**.
 

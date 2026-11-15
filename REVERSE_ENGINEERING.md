@@ -90,8 +90,11 @@ NÃO pode ser usado (o client OAuth também tem Drive/YouTube e o Google recusa 
 
 ## Observações da conta testada
 
-Todos os dados vêm de **uma única sincronização do Apple Health (HEALTH_KIT) em
-30/07/2026** (dia do cadastro). Nada novo desde então: o app Google Health no
-iPhone não está sincronizando o HealthKit em segundo plano. Só `daily-heart-rate-zones`
-(derivado pela própria Fitbit) segue atualizando. Nenhum aparelho 1P pareado.
-O sensor **Último dado recebido** (+ atributo `dias_sem_dados`) deixa isso visível.
+O Google Health só recebe dados do Apple Watch/iPhone se o app **Google Health**
+tiver permissão de leitura no app Saúde do iOS (Ajustes › Saúde › Acesso a Dados e
+Dispositivos › Google Health). Sem ela, a conta fica só com o que veio na primeira
+sincronização. Na conta testada os dados ficaram parados de 30/07 a 15/11/2026; depois
+de liberar a permissão, passos/FC/VFC/distância voltaram no mesmo dia (origem
+`HEALTH_KIT`). Sono e exercícios antigos chegam aos poucos. `daily-heart-rate-zones` é
+recalculado diariamente pela própria Fitbit e não indica sincronização — o sensor
+**Último dado recebido** o ignora.
