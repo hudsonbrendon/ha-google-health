@@ -12,7 +12,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
 from . import parse
-from .api import GoogleHealthError, safe as parse_safe
+from .api import GoogleHealthError, GoogleHealthUnavailable
 from .const import (
     DOMAIN,
     SCOPE_ACTIVITY_WRITE,
@@ -64,6 +64,16 @@ def _when(call: ServiceCall, key: str = "quando") -> datetime:
     return dt_util.as_local(value) if value else dt_util.now()
 
 
+async def _lookup(coro) -> list:
+    """Consulta para checar duplicado: sem dado → [], falha de rede → erro legível."""
+    try:
+        return await coro
+    except GoogleHealthUnavailable:
+        return []
+    except GoogleHealthError as err:
+        raise HomeAssistantError(f"Google Health indisponível: {err}") from err
+
+
 async def _create(entry, data_type: str, field: str, value: dict) -> dict:
     try:
         res = await entry.runtime_data.client.create(data_type, field, value)
@@ -104,10 +114,10 @@ def async_setup_services(hass: HomeAssistant) -> None:
         when, kg = _when(call), call.data["peso"]
         if call.data["ignorar_duplicado"]:
             # Pesagem igual (±0,3 kg) em ±15 min já existe (ex.: veio do Apple Health/Zepp)?
-            near = await parse_safe(entry.runtime_data.client.list_points(
+            near = await _lookup(entry.runtime_data.client.list_points(
                 "weight", page_size=20,
                 flt=parse.time_filter("weight", when - timedelta(minutes=15), when + timedelta(minutes=15)),
-            ), [])
+            ))
             if any(abs((parse.num(parse.body(p).get("weightGrams")) or 0) / 1000 - kg) < 0.3 for p in near):
                 return {"gravado": False, "motivo": "pesagem já existe no Google Health"}
         await _create(entry, "weight", "weight", parse.weight_point(kg, when))
@@ -141,10 +151,10 @@ def async_setup_services(hass: HomeAssistant) -> None:
         end = start + timedelta(minutes=d["duracao"])
         if d["ignorar_duplicado"]:
             # Sessão que cobre mais da metade deste treino já existe (ex.: gravada pelo relógio)?
-            near = await parse_safe(entry.runtime_data.client.list_points(
+            near = await _lookup(entry.runtime_data.client.list_points(
                 "exercise", page_size=25,
                 flt=parse.time_filter("exercise", start - timedelta(hours=4), end),
-            ), [])
+            ))
             if any(parse.overlap(parse.body(p), start, end) > 0.5 for p in near):
                 return {"gravado": False, "motivo": "treino já existe no Google Health"}
         await _create(
