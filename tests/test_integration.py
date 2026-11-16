@@ -183,12 +183,16 @@ async def test_write_services(hass: HomeAssistant, hass_client_no_auth, tmp_path
         assert (ok.status, bad.status) == (201, 401)
         got = []
         hass.bus.async_listen("google_health_notificacao", got.append)
-        r = await client.post(url, json={"dataType": "steps"}, headers={"Authorization": secret})
+        r = await client.post(url, json={"data": {"dataType": "steps", "operation": "UPSERT"}}, headers={"Authorization": secret})
         await hass.async_block_till_done()
-        assert r.status == 200 and got[0].data == {"dataType": "steps"}
-        assert entry.runtime_data.notifications == 1
+        assert r.status == 204 and got[0].data == {"dataType": "steps", "operation": "UPSERT"}
+        lote = await client.post(url, json=[{"data": {"dataType": "sleep"}}, {"data": {"dataType": "weight"}}],
+                                 headers={"Authorization": secret})
+        await hass.async_block_till_done()
+        assert lote.status == 204 and [e.data["dataType"] for e in got] == ["steps", "sleep", "weight"]
+        assert entry.runtime_data.notifications == 2
         info = await hass.services.async_call(DOMAIN, "info_notificacoes", {}, blocking=True, return_response=True)
-        assert info["segredo"] == secret and info["notificacoes_recebidas"] == 1
+        assert info["segredo"] == secret and info["notificacoes_recebidas"] == 2
 
         # histórico nas estatísticas
         hist = await hass.services.async_call(

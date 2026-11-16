@@ -1,5 +1,7 @@
 """Notificações em tempo real (assinante da Google Health API).
 
+Doc: https://developers.google.com/health/webhooks
+
 O Google faz duas verificações ao criar o assinante: POST com o segredo no
 `Authorization` → espera 201; sem o segredo → espera 401/403. Depois, cada
 notificação de dado novo dispara uma atualização imediata dos coordenadores.
@@ -57,17 +59,22 @@ def register(hass: HomeAssistant, entry: GoogleHealthConfigEntry) -> None:
             payload = await request.json()
         except ValueError:
             payload = {}
-        if payload.get("type") == "verification":
+        if isinstance(payload, dict) and payload.get("type") == "verification":
             return web.Response(status=201)
         rt = entry.runtime_data
         rt.notifications += 1
         rt.last_notification = dt_util.utcnow()
         rt.last_payload = payload
-        hass.bus.async_fire(EVENT, payload if isinstance(payload, dict) else {"dados": payload})
+        # Corpo: {"data": {...}} ou lista (lote de até 99). Só avisa o que mudou;
+        # os valores vêm na atualização dos coordenadores.
+        items = payload if isinstance(payload, list) else [payload]
+        for item in items:
+            data = item.get("data", item) if isinstance(item, dict) else {"dados": item}
+            hass.bus.async_fire(EVENT, data)
         _LOGGER.debug("Notificação Google Health: %s", payload)
         for coord in rt.coordinators.values():
-            await coord.async_request_refresh()  # debounced
-        return web.Response(status=200)
+            hass.async_create_task(coord.async_request_refresh())  # debounced, não segura a resposta
+        return web.Response(status=204)  # o Google reenvia se não for 204
 
     webhook.async_register(
         hass, DOMAIN, f"Google Health ({entry.title})", webhook_id, handle,
