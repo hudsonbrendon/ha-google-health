@@ -98,3 +98,20 @@ de liberar a permissão, passos/FC/VFC/distância voltaram no mesmo dia (origem
 `HEALTH_KIT`). Sono e exercícios antigos chegam aos poucos. `daily-heart-rate-zones` é
 recalculado diariamente pela própria Fitbit e não indica sincronização — o sensor
 **Último dado recebido** o ignora.
+
+## Webhooks (validado 16/11/2026)
+
+- Criar assinante exige `cloud-platform` (gcloud do dono do projeto) + header
+  `x-goog-user-project`; caminho com o **número** do projeto. Antes de salvar, o Google
+  faz 2 POSTs `{"type":"verification"}` (UA `Google-Health-API-Webhooks`): com o segredo
+  no `Authorization` → 201; sem → 401/403. Falha = `FAILED_PRECONDITION` sem detalhe.
+- Tipos aceitos em notificação são um subconjunto (sem `active-energy-burned`,
+  `oxygen-saturation`, `vo2-max`, `daily-vo2-max` → `INVALID_ARGUMENT`).
+- `AUTOMATIC` assina sozinho quem já deu consentimento ao client OAuth.
+- Notificação: `{"data": {version, clientProvidedSubscriptionName, healthUserId,
+  operation: UPSERT|DELETE, dataType, intervals[{physicalTimeInterval,
+  civilDateTimeInterval, civilIso8601TimeInterval}], recordId}}` (ou lista de até 99);
+  chega ~1 s após a gravação; responder **204** (outro código = reenvio por até 7 dias).
+  Header `GOOGLE-HEALTH-API-SIGNATURE` (ECDSA P-256) — a integração confia no segredo.
+- TCX (`:exportExerciseTcx?alt=media`) exige `googlehealth.location.readonly`.
+- `dataPoints:rollUp` com `windowSize: "3600s"` dá série por hora (base do histórico).

@@ -1,0 +1,88 @@
+# Automações usadas com a integração (cole em automations.yaml ou crie pela UI).
+# Ajuste entidades/serviços de notificação para a sua casa.
+- id: google_health_peso_da_balanca
+  alias: Google Health - peso da balança
+  description: Cada pesagem do Hudson na balança do banheiro (classificada pelo pacote pesagens_familia) vai para o Google
+    Health. Não duplica se já houver pesagem igual no mesmo horário.
+  mode: queued
+  triggers:
+  - trigger: event
+    event_type: pesagens_familia_registrada
+    event_data:
+      pessoa: hudson
+  conditions: []
+  actions:
+  - action: google_health.registrar_peso
+    data:
+      peso: '{{ trigger.event.data.peso | float }}'
+      quando: '{{ (trigger.event.data.instante | float) | timestamp_local }}'
+    response_variable: res
+  - action: logbook.log
+    data:
+      name: Google Health
+      message: 'peso {{ trigger.event.data.peso }} kg: {{ ''gravado'' if res.gravado else res.motivo }}'
+      entity_id: sensor.google_health_corpo_peso
+- id: google_health_treino_do_opengym
+  alias: Google Health - treino do openGym
+  description: Treino concluído no openGym vira sessão de musculação no Google Health (início = fim − duração). Ignora se
+    o relógio já gravou o treino.
+  mode: queued
+  triggers:
+  - trigger: state
+    entity_id: event.opengym_hudson_treino_concluido
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.to_state.attributes.event_type == ''treino_concluido'' and trigger.from_state is not none
+      and trigger.from_state.state != ''unavailable'' }}'
+  actions:
+  - variables:
+      dur: '{{ trigger.to_state.attributes.duracao_min | float(0) }}'
+  - condition: template
+    value_template: '{{ dur > 0 }}'
+  - action: google_health.registrar_exercicio
+    data:
+      tipo: STRENGTH_TRAINING
+      duracao: '{{ dur }}'
+      inicio: '{{ (as_datetime(trigger.to_state.state) - timedelta(minutes=trigger.to_state.attributes.duracao_min | float(0)))
+        | as_local }}'
+      nome: '{{ trigger.to_state.attributes.nome or ''Musculação'' }}'
+      notas: 'openGym: {{ trigger.to_state.attributes.volume }} kg, {{ trigger.to_state.attributes.series }} séries, {{ trigger.to_state.attributes.repeticoes
+        }} repetições'
+    response_variable: res
+  - action: logbook.log
+    data:
+      name: Google Health
+      message: 'treino {{ trigger.to_state.attributes.nome }}: {{ ''gravado'' if res.gravado else res.motivo }}'
+      entity_id: sensor.google_health_exercicios_ultimo_exercicio
+- id: google_health_aviso_sem_sincronizar
+  alias: Google Health - aviso de sincronização parada
+  description: Avisa no iPhone se o Google Health ficar 2 dias sem receber dados novos do relógio/iPhone (aconteceu de 30/07
+    a 15/11/2026).
+  mode: single
+  triggers:
+  - trigger: time
+    at: '20:00:00'
+  conditions:
+  - condition: template
+    value_template: '{{ state_attr(''sensor.google_health_conta_ultimo_dado_recebido'',''dias_sem_dados'') | int(0) >= 2 }}'
+  actions:
+  - action: notify.mobile_app_iphone_de_hudson
+    data:
+      title: Google Health parou de sincronizar
+      message: '{{ state_attr(''sensor.google_health_conta_ultimo_dado_recebido'',''dias_sem_dados'') }} dias sem dados novos.
+        Abra o app Google Health no iPhone e confira Ajustes › Saúde › Acesso a Dados › Google Health.'
+- id: google_health_meta_de_passos
+  alias: Google Health - meta de passos
+  description: Comemora quando os passos do dia passam da meta (ajuste o número no gatilho).
+  mode: single
+  triggers:
+  - trigger: numeric_state
+    entity_id: sensor.google_health_atividade_passos
+    above: 8000
+  conditions: []
+  actions:
+  - action: notify.mobile_app_iphone_de_hudson
+    data:
+      title: Meta de passos batida 🎉
+      message: '{{ states(''sensor.google_health_atividade_passos'') }} passos hoje (média de 7 dias: {{ states(''sensor.google_health_atividade_media_de_passos_7_dias'')
+        }}).'

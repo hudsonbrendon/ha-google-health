@@ -40,12 +40,14 @@ def ensure_credentials(hass: HomeAssistant, entry: GoogleHealthConfigEntry) -> t
     return data["webhook_id"], data["webhook_secret"]
 
 
-def webhook_url(hass: HomeAssistant, webhook_id: str) -> str | None:
+def webhook_url(hass: HomeAssistant, webhook_id: str) -> str:
+    """URL pública do webhook; sem URL externa configurada, só o caminho
+    (prefixe com o domínio pelo qual o HA é acessado de fora)."""
+    path = webhook.async_generate_path(webhook_id)
     try:
-        base = get_url(hass, allow_internal=False, prefer_cloud=False)
+        return get_url(hass, allow_internal=False, prefer_cloud=False) + path
     except NoURLAvailableError:
-        return None
-    return base + webhook.async_generate_path(webhook_id)
+        return path
 
 
 def register(hass: HomeAssistant, entry: GoogleHealthConfigEntry) -> None:
