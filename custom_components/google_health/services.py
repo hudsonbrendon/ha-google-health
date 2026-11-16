@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from pathlib import Path
 import voluptuous as vol
 
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
@@ -11,10 +12,11 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
 from . import parse
-from .api import GoogleHealthError
+from .api import GoogleHealthError, safe as parse_safe
 from .const import (
     DOMAIN,
     SCOPE_ACTIVITY_WRITE,
+    SCOPE_LOCATION,
     SCOPE_MEASUREMENTS_WRITE,
     SCOPE_NUTRITION_WRITE,
 )
@@ -97,12 +99,21 @@ def async_setup_services(hass: HomeAssistant) -> None:
             raise HomeAssistantError(str(err)) from err
         return {"tipo": tipo, "quantidade": len(pontos), "pontos": pontos}
 
-    async def registrar_peso(call: ServiceCall) -> None:
+    async def registrar_peso(call: ServiceCall) -> ServiceResponse:
         entry = _entry(hass, call, SCOPE_MEASUREMENTS_WRITE)
-        when = _when(call)
-        await _create(entry, "weight", "weight", parse.weight_point(call.data["peso"], when))
+        when, kg = _when(call), call.data["peso"]
+        if call.data["ignorar_duplicado"]:
+            # Pesagem igual (±0,3 kg) em ±15 min já existe (ex.: veio do Apple Health/Zepp)?
+            near = await parse_safe(entry.runtime_data.client.list_points(
+                "weight", page_size=20,
+                flt=parse.time_filter("weight", when - timedelta(minutes=15), when + timedelta(minutes=15)),
+            ), [])
+            if any(abs((parse.num(parse.body(p).get("weightGrams")) or 0) / 1000 - kg) < 0.3 for p in near):
+                return {"gravado": False, "motivo": "pesagem já existe no Google Health"}
+        await _create(entry, "weight", "weight", parse.weight_point(kg, when))
         if (fat := call.data.get("gordura_corporal")) is not None:
             await _create(entry, "body-fat", "bodyFat", parse.body_fat_point(fat, when))
+        return {"gravado": True}
 
     async def registrar_agua(call: ServiceCall) -> None:
         entry = _entry(hass, call, SCOPE_NUTRITION_WRITE)
@@ -122,19 +133,77 @@ def async_setup_services(hass: HomeAssistant) -> None:
             ),
         )
 
-    async def registrar_exercicio(call: ServiceCall) -> None:
+    async def registrar_exercicio(call: ServiceCall) -> ServiceResponse:
         entry = _entry(hass, call, SCOPE_ACTIVITY_WRITE)
         d = call.data
+        # sem início: o exercício terminou agora
+        start = _when(call, "inicio") if d.get("inicio") else dt_util.now() - timedelta(minutes=d["duracao"])
+        end = start + timedelta(minutes=d["duracao"])
+        if d["ignorar_duplicado"]:
+            # Sessão que cobre mais da metade deste treino já existe (ex.: gravada pelo relógio)?
+            near = await parse_safe(entry.runtime_data.client.list_points(
+                "exercise", page_size=25,
+                flt=parse.time_filter("exercise", start - timedelta(hours=4), end),
+            ), [])
+            if any(parse.overlap(parse.body(p), start, end) > 0.5 for p in near):
+                return {"gravado": False, "motivo": "treino já existe no Google Health"}
         await _create(
             entry, "exercise", "exercise",
             parse.exercise_point(
-                d["tipo"],
-                # sem início: o exercício terminou agora
-                _when(call, "inicio") if d.get("inicio") else dt_util.now() - timedelta(minutes=d["duracao"]),
-                d["duracao"], d.get("nome"),
+                d["tipo"], start, d["duracao"], d.get("nome"),
                 d.get("calorias"), d.get("distancia"), d.get("notas"),
             ),
         )
+        return {"gravado": True}
+
+    async def exportar_treino_tcx(call: ServiceCall) -> ServiceResponse:
+        entry = _entry(hass, call, SCOPE_LOCATION)
+        client = entry.runtime_data.client
+        name = call.data.get("id")
+        try:
+            if not name:
+                last = await client.list_points("exercise", page_size=1)
+                if not last:
+                    raise ServiceValidationError("Nenhum exercício no Google Health.")
+                name = last[0]["name"]
+            elif "/" not in name:
+                name = f"users/me/dataTypes/exercise/dataPoints/{name}"
+            data = await client.export_tcx(name)
+        except GoogleHealthError as err:
+            raise HomeAssistantError(f"TCX indisponível: {err}") from err
+        folder = Path(hass.config.media_dirs.get("local") or hass.config.path("media")) / "google_health"
+        path = folder / f"treino_{name.rsplit('/', 1)[-1]}.tcx"
+
+        def write() -> None:
+            folder.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+
+        await hass.async_add_executor_job(write)
+        return {
+            "arquivo": str(path),
+            "media": f"media-source://media_source/local/google_health/{path.name}",
+            "bytes": len(data),
+        }
+
+    async def importar_historico(call: ServiceCall) -> ServiceResponse:
+        from .statistics import async_import_history  # noqa: PLC0415
+
+        entry = _entry(hass, call)
+        res = await async_import_history(hass, entry.runtime_data.client, call.data["dias"])
+        entry.runtime_data.history = res
+        return {"linhas_gravadas": res}
+
+    async def info_notificacoes(call: ServiceCall) -> ServiceResponse:
+        from .webhook import webhook_url  # noqa: PLC0415
+
+        entry = _entry(hass, call)
+        rt = entry.runtime_data
+        return {
+            "url": webhook_url(hass, entry.data["webhook_id"]),
+            "segredo": entry.data["webhook_secret"],
+            "notificacoes_recebidas": rt.notifications,
+            "ultima": rt.last_notification.isoformat() if rt.last_notification else None,
+        }
 
     pos = vol.All(vol.Coerce(float), vol.Range(min=0))
     hass.services.async_register(
@@ -156,7 +225,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
             vol.Required("peso"): pos,
             vol.Optional("gordura_corporal"): vol.All(vol.Coerce(float), vol.Range(0, 100)),
             vol.Optional("quando"): cv.datetime,
+            vol.Optional("ignorar_duplicado", default=True): cv.boolean,
         }),
+        supports_response=SupportsResponse.OPTIONAL,
     )
     hass.services.async_register(
         DOMAIN, "registrar_agua", registrar_agua,
@@ -187,5 +258,23 @@ def async_setup_services(hass: HomeAssistant) -> None:
             vol.Optional("calorias"): pos,
             vol.Optional("distancia"): pos,
             vol.Optional("notas"): cv.string,
+            vol.Optional("ignorar_duplicado", default=True): cv.boolean,
         }),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN, "exportar_treino_tcx", exportar_treino_tcx,
+        vol.Schema({_ENTRY: cv.string, vol.Optional("id"): cv.string}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN, "importar_historico", importar_historico,
+        vol.Schema({_ENTRY: cv.string,
+                    vol.Optional("dias", default=365): vol.All(vol.Coerce(int), vol.Range(1, 3650))}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN, "info_notificacoes", info_notificacoes,
+        vol.Schema({_ENTRY: cv.string}),
+        supports_response=SupportsResponse.ONLY,
     )

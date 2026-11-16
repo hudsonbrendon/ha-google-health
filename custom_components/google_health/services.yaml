@@ -123,6 +123,12 @@
         "selector": {
           "datetime": {}
         }
+      },
+      "ignorar_duplicado": {
+        "default": true,
+        "selector": {
+          "boolean": {}
+        }
       }
     }
   },
@@ -428,6 +434,61 @@
         "selector": {
           "text": {
             "multiline": true
+          }
+        }
+      },
+      "ignorar_duplicado": {
+        "default": true,
+        "selector": {
+          "boolean": {}
+        }
+      }
+    }
+  },
+  "exportar_treino_tcx": {
+    "fields": {
+      "config_entry_id": {
+        "selector": {
+          "config_entry": {
+            "integration": "google_health"
+          }
+        }
+      },
+      "id": {
+        "selector": {
+          "text": {}
+        }
+      }
+    }
+  },
+  "importar_historico": {
+    "fields": {
+      "config_entry_id": {
+        "selector": {
+          "config_entry": {
+            "integration": "google_health"
+          }
+        }
+      },
+      "dias": {
+        "default": 365,
+        "selector": {
+          "number": {
+            "min": 1,
+            "max": 3650,
+            "mode": "box",
+            "unit_of_measurement": "dias"
+          }
+        }
+      }
+    }
+  },
+  "info_notificacoes": {
+    "fields": {
+      "config_entry_id": {
+        "selector": {
+          "config_entry": {
+            "integration": "google_health"
           }
         }
       }

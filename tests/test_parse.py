@@ -109,3 +109,18 @@ def test_time_filter():
     assert p.time_filter("heart-rate", t0, None).startswith("heart_rate.sample_time.physical_time")
     assert p.time_filter("electrocardiogram", t0, t1) == 'electrocardiogram.interval.start_time >= "2026-11-01T00:00:00Z"'
     assert p.time_filter("steps", None, None) is None
+
+
+def test_statistics_rows():
+    pts = [
+        {"startTime": "2026-11-15T16:00:00Z", "endTime": "2026-11-15T17:00:00Z", "steps": {"countSum": "240"}},
+        {"startTime": "2026-11-15T13:00:00Z", "endTime": "2026-11-15T14:00:00Z", "steps": {"countSum": "14"}},
+    ]
+    rows = p.sum_rows(pts, lambda v: p.num(v.get("countSum")), base=100)
+    assert [(r["start"].hour, r["state"], r["sum"]) for r in rows] == [(13, 14, 114), (16, 240, 354)]
+    t = datetime(2026, 11, 15, 10, 20, tzinfo=UTC)
+    rows = p.mean_rows([(t, 80, 70, 90), (t + timedelta(minutes=10), 60, 55, 99)])
+    assert rows == [{"start": datetime(2026, 11, 15, 10, tzinfo=UTC), "mean": 70, "min": 55, "max": 99}]
+    br = timezone(timedelta(hours=-3))
+    daily = {"dailyRestingHeartRate": {"date": {"year": 2026, "month": 11, "day": 15}, "beatsPerMinute": "55"}}
+    assert p.point_moment(daily, br) == datetime(2026, 11, 15, 3, tzinfo=UTC)

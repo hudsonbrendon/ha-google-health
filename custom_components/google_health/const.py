@@ -21,6 +21,7 @@ SCOPE_PROFILE = _P + "profile.readonly"
 SCOPE_SETTINGS = _P + "settings.readonly"
 SCOPE_ECG = _P + "ecg.readonly"
 SCOPE_IRN = _P + "irn.readonly"
+SCOPE_LOCATION = _P + "location.readonly"
 SCOPE_ACTIVITY_WRITE = _P + "activity_and_fitness.writeonly"
 SCOPE_MEASUREMENTS_WRITE = _P + "health_metrics_and_measurements.writeonly"
 SCOPE_NUTRITION_WRITE = _P + "nutrition.writeonly"
@@ -38,6 +39,7 @@ OAUTH_SCOPES = [
     SCOPE_USERINFO,
     SCOPE_ECG,
     SCOPE_IRN,
+    SCOPE_LOCATION,
     SCOPE_ACTIVITY_WRITE,
     SCOPE_MEASUREMENTS_WRITE,
     SCOPE_NUTRITION_WRITE,
@@ -46,6 +48,7 @@ OAUTH_SCOPES = [
 EXTRA_SCOPES = {
     SCOPE_ECG: "ECG",
     SCOPE_IRN: "ritmo irregular",
+    SCOPE_LOCATION: "GPS dos treinos (TCX)",
     SCOPE_ACTIVITY_WRITE: "gravar atividade/exercícios",
     SCOPE_MEASUREMENTS_WRITE: "gravar medições (peso)",
     SCOPE_NUTRITION_WRITE: "gravar nutrição/água",

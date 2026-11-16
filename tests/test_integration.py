@@ -74,6 +74,13 @@ def fake_api(calls):
                      "time-in-heart-rate-zone": "timeInHeartRateZone"}.get(t, t)
             return {"rollupDataPoints": [{"civilStartTime": _day(today),
                                           "civilEndTime": _day(today + timedelta(days=1)), field: roll[t]}]}
+        if path.endswith(":rollUp"):
+            t = path.split("/")[1]
+            start = json["range"]["startTime"]
+            if t == "steps":
+                return {"rollupDataPoints": [{"startTime": "2026-11-15T16:00:00Z", "endTime": "2026-11-15T17:00:00Z",
+                                              "steps": {"countSum": "240"}}]} if start <= "2026-11-15T16" < json["range"]["endTime"] else {}
+            return {}
         if path.endswith("/dataPoints") and method == "GET":
             t = path.split("/")[1]
             if t == "total-calories":
@@ -102,7 +109,7 @@ async def _setup(hass: HomeAssistant, scopes):
 
 
 @pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations):
+def auto_enable_custom_integrations(recorder_mock, enable_custom_integrations):
     yield
 
 
@@ -155,10 +162,46 @@ async def test_setup_and_sensors(hass: HomeAssistant) -> None:
         assert events[by_key["calendar_sleep"]]["events"][0]["summary"] == "Sono 6h15"
 
 
-async def test_write_services(hass: HomeAssistant) -> None:
+async def test_write_services(hass: HomeAssistant, hass_client_no_auth, tmp_path) -> None:
     calls = []
     with patch("custom_components.google_health.api.GoogleHealthClient._request", fake_api(calls)):
-        await _setup(hass, OAUTH_SCOPES)
+        entry = await _setup(hass, OAUTH_SCOPES)
+
+        # treino que coincide com um já existente (relógio) não é regravado
+        dup = await hass.services.async_call(
+            DOMAIN, "registrar_exercicio",
+            {"tipo": "BIKING", "duracao": 30, "inicio": "2026-07-29T22:21:00+00:00"},
+            blocking=True, return_response=True)
+        assert dup == {"gravado": False, "motivo": "treino já existe no Google Health"}
+
+        # webhook: verificação do Google (201 com segredo, 401 sem) e notificação
+        client = await hass_client_no_auth()
+        url = f"/api/webhook/{entry.data['webhook_id']}"
+        secret = entry.data["webhook_secret"]
+        ok = await client.post(url, json={"type": "verification"}, headers={"Authorization": secret})
+        bad = await client.post(url, json={"type": "verification"})
+        assert (ok.status, bad.status) == (201, 401)
+        got = []
+        hass.bus.async_listen("google_health_notificacao", got.append)
+        r = await client.post(url, json={"dataType": "steps"}, headers={"Authorization": secret})
+        await hass.async_block_till_done()
+        assert r.status == 200 and got[0].data == {"dataType": "steps"}
+        assert entry.runtime_data.notifications == 1
+        info = await hass.services.async_call(DOMAIN, "info_notificacoes", {}, blocking=True, return_response=True)
+        assert info["segredo"] == secret and info["notificacoes_recebidas"] == 1
+
+        # histórico nas estatísticas
+        hist = await hass.services.async_call(
+            DOMAIN, "importar_historico", {"dias": 3}, blocking=True, return_response=True)
+        assert hist["linhas_gravadas"]["passos"] in (0, 1)
+
+        # TCX vai para a pasta de mídia
+        hass.config.media_dirs = {"local": str(tmp_path)}
+        with patch("custom_components.google_health.api.GoogleHealthClient.export_tcx", return_value=b"<tcx/>"):
+            tcx = await hass.services.async_call(
+                DOMAIN, "exportar_treino_tcx", {"id": "42"}, blocking=True, return_response=True)
+        assert (tmp_path / "google_health" / "treino_42.tcx").read_bytes() == b"<tcx/>"
+        assert tcx["media"].endswith("treino_42.tcx")
         await hass.services.async_call(
             DOMAIN, "registrar_peso", {"peso": 84.2, "gordura_corporal": 21.5}, blocking=True)
         await hass.services.async_call(DOMAIN, "registrar_agua", {"quantidade": 300}, blocking=True)

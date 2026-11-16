@@ -188,6 +188,16 @@ def exercises_since(points: list[dict] | None, since: datetime) -> list[dict]:
     ]
 
 
+def overlap(ex: dict[str, Any], start: datetime, end: datetime) -> float:
+    """Fração de [start, end) coberta pela sessão `ex`."""
+    i = ex.get("interval") or {}
+    a, b = ts(i.get("startTime")), ts(i.get("endTime"))
+    if not a or not b or end <= start:
+        return 0.0
+    inter = (min(b, end) - max(a, start)).total_seconds()
+    return max(inter, 0.0) / (end - start).total_seconds()
+
+
 def bmi(weight_kg: float | None, height_cm: float | None) -> float | None:
     if not weight_kg or not height_cm:
         return None
@@ -335,3 +345,49 @@ def time_filter(data_type: str, start: datetime | None, end: datetime | None) ->
     if end and data_type != "electrocardiogram":  # ECG só aceita início
         parts.append(f'{field} < "{lit(end)}"')
     return " AND ".join(parts) or None
+
+
+# -- estatísticas de longo prazo (histórico no HA) ----------------------------
+
+
+def hour_floor(moment: datetime) -> datetime:
+    return moment.astimezone(UTC).replace(minute=0, second=0, microsecond=0)
+
+
+def sum_rows(points: list[dict], value_fn, base: float = 0.0) -> list[dict[str, Any]]:
+    """rollUp por hora → linhas {start, state, sum} com soma acumulada a partir de `base`."""
+    hours: dict[datetime, float] = {}
+    for p in points or []:
+        start = ts(p.get("startTime"))
+        val = next((v for k, v in p.items() if k not in ("startTime", "endTime")), None)
+        if start and isinstance(val, dict) and (v := value_fn(val)) is not None:
+            hours[hour_floor(start)] = hours.get(hour_floor(start), 0.0) + v
+    rows, total = [], base
+    for start in sorted(hours):
+        total += hours[start]
+        rows.append({"start": start, "state": hours[start], "sum": round(total, 3)})
+    return rows
+
+
+def mean_rows(samples: list[tuple[datetime, float, float, float]]) -> list[dict[str, Any]]:
+    """[(momento, média, mín, máx)] → uma linha por hora (média das médias)."""
+    hours: dict[datetime, list[tuple[float, float, float]]] = {}
+    for moment, avg, lo, hi in samples:
+        hours.setdefault(hour_floor(moment), []).append((avg, lo, hi))
+    return [
+        {
+            "start": h,
+            "mean": round(sum(v[0] for v in vals) / len(vals), 2),
+            "min": min(v[1] for v in vals),
+            "max": max(v[2] for v in vals),
+        }
+        for h, vals in sorted(hours.items())
+    ]
+
+
+def point_moment(dp: dict[str, Any], tz) -> datetime | None:
+    """Momento de um data point para o histórico: amostra, fim da sessão ou dia (00:00 local)."""
+    b = body(dp)
+    if d := gdate(b.get("date")):
+        return datetime(d.year, d.month, d.day, tzinfo=tz)
+    return when(dp)

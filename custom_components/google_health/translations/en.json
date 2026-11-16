@@ -82,6 +82,10 @@
         "quando": {
           "name": "Quando",
           "description": "Data/hora da medição (padrão: agora)."
+        },
+        "ignorar_duplicado": {
+          "name": "Ignorar duplicado",
+          "description": "Não grava se já existir um registro igual no mesmo horário (ex.: vindo do relógio ou do Apple Health)."
         }
       }
     },
@@ -176,6 +180,48 @@
         "notas": {
           "name": "Notas",
           "description": "Observações."
+        },
+        "ignorar_duplicado": {
+          "name": "Ignorar duplicado",
+          "description": "Não grava se já existir um registro igual no mesmo horário (ex.: vindo do relógio ou do Apple Health)."
+        }
+      }
+    },
+    "exportar_treino_tcx": {
+      "name": "Exportar treino (TCX)",
+      "description": "Salva o arquivo TCX (percurso/GPS) de um exercício na pasta de mídia, em google_health/.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "Conta Google Health."
+        },
+        "id": {
+          "name": "ID do exercício",
+          "description": "ID do data point (padrão: o mais recente)."
+        }
+      }
+    },
+    "importar_historico": {
+      "name": "Importar histórico",
+      "description": "Importa/atualiza o histórico nas estatísticas de longo prazo (gráficos). Roda sozinho de hora em hora.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "Conta Google Health."
+        },
+        "dias": {
+          "name": "Dias",
+          "description": "Quantos dias para trás na primeira importação."
+        }
+      }
+    },
+    "info_notificacoes": {
+      "name": "Dados das notificações em tempo real",
+      "description": "Mostra a URL e o segredo do webhook, para registrar o assinante no Google Cloud.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Conta",
+          "description": "Conta Google Health."
         }
       }
     }

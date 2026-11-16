@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from datetime import date
+from datetime import UTC, date, datetime
 import logging
 from typing import Any
 
@@ -32,6 +32,10 @@ class GoogleHealthUnavailable(GoogleHealthError):
 
     Não derruba a atualização: o sensor fica sem valor.
     """
+
+
+def rfc3339(moment: datetime) -> str:
+    return moment.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def civil_date(day: date) -> dict[str, Any]:
@@ -107,6 +111,41 @@ class GoogleHealthClient:
         }
         res = await self.post(f"dataTypes/{data_type}/dataPoints:dailyRollUp", body)
         return res.get("rollupDataPoints", [])
+
+    async def rollup(
+        self, data_type: str, start: datetime, end: datetime, window: str = "3600s"
+    ) -> list[dict]:
+        """Agregados por janela física (ex.: por hora) em [start, end), paginado."""
+        body: dict[str, Any] = {
+            "range": {"startTime": rfc3339(start), "endTime": rfc3339(end)},
+            "windowSize": window,
+            "pageSize": 1000,
+        }
+        out: list[dict] = []
+        while True:
+            res = await self.post(f"dataTypes/{data_type}/dataPoints:rollUp", body)
+            out.extend(res.get("rollupDataPoints", []))
+            if not (token := res.get("nextPageToken")):
+                return out
+            body["pageToken"] = token
+
+    async def export_tcx(self, point_name: str) -> bytes:
+        """TCX de um exercício (exige escopo de localização)."""
+        url = f"{API_URL.rsplit('/users/', 1)[0]}/{point_name}:exportExerciseTcx"
+        headers = {"Authorization": f"Bearer {await self._token_fn()}"}
+        try:
+            async with self._sem, self._session.get(
+                url, params={"alt": "media"}, headers=headers, timeout=60
+            ) as resp:
+                data = await resp.read()
+                status = resp.status
+        except (ClientError, TimeoutError) as err:
+            raise GoogleHealthError(f"TCX: {err}") from err
+        if status == 401:
+            raise GoogleHealthAuthError("401")
+        if status >= 400:
+            raise GoogleHealthUnavailable(f"{status} {data[:200]!r}")
+        return data
 
     async def create(self, data_type: str, field: str, value: dict[str, Any]) -> dict:
         """Cria um data point (exige escopo de escrita)."""

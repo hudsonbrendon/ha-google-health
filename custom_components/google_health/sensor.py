@@ -678,6 +678,27 @@ class LastSyncSensor(GoogleHealthEntity, SensorEntity):
         return {"dias_sem_dados": (dt_util.utcnow() - v).days if v else None}
 
 
+class NotificationSensor(GoogleHealthEntity, SensorEntity):
+    """Última notificação em tempo real recebida do Google (webhook)."""
+
+    _attr_name = "Última notificação em tempo real"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:bell-ring"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, DEV_ACCOUNT, "last_notification")
+
+    @property
+    def native_value(self) -> datetime | None:
+        return self.coordinator.config_entry.runtime_data.last_notification
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        rt = self.coordinator.config_entry.runtime_data
+        return {"recebidas": rt.notifications, "historico_importado": rt.history or None}
+
+
 class PairedDeviceSensor(CoordinatorEntity, SensorEntity):
     """Bateria / última sincronização de um rastreador ou balança Fitbit/Pixel."""
 
@@ -741,7 +762,7 @@ async def async_setup_entry(
         skip.add("irn")
     async_add_entities(
         [GoogleHealthSensor(coords[d.group], d) for d in ALL if d.key not in skip]
-        + [LastSyncSensor(coords["fast"], coords["slow"])]
+        + [LastSyncSensor(coords["fast"], coords["slow"]), NotificationSensor(coords["fast"])]
     )
 
     known: set[str] = set()

@@ -6,7 +6,9 @@ Adota a config entry, as credenciais OAuth e as entidades da integração do cor
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -22,6 +24,7 @@ from homeassistant.helpers.config_entry_oauth2_flow import (
     OAuth2Session,
     async_get_config_entry_implementation,
 )
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.typing import ConfigType
 
 from .api import GoogleHealthClient
@@ -29,6 +32,7 @@ from .const import DEV_ACCOUNT, DEVICE_NAMES, DOMAIN, EXTRA_SCOPES
 from .coordinator import GoogleHealthCoordinator, build_coordinators
 from .services import async_setup_services
 
+_LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -38,6 +42,10 @@ class GoogleHealthData:
     client: GoogleHealthClient
     scopes: set[str]
     coordinators: dict[str, GoogleHealthCoordinator]
+    notifications: int = 0
+    last_notification: datetime | None = None
+    last_payload: Any = None
+    history: dict[str, int] = field(default_factory=dict)
 
 
 type GoogleHealthConfigEntry = ConfigEntry[GoogleHealthData]
@@ -88,6 +96,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoogleHealthConfigEntry)
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, f"extra_scopes_{entry.entry_id}")
+
+    from . import webhook  # noqa: PLC0415 — depende de runtime_data
+    from .statistics import async_import_history  # noqa: PLC0415 — recorder é opcional
+
+    webhook.register(hass, entry)
+
+    async def import_history(_now: datetime | None = None) -> None:
+        try:
+            entry.runtime_data.history = await async_import_history(hass, client)
+        except Exception:  # noqa: BLE001 — histórico nunca derruba a integração
+            _LOGGER.exception("Falha ao importar histórico do Google Health")
+
+    # Primeira carga (até 1 ano) em segundo plano; depois de hora em hora.
+    entry.async_create_background_task(hass, import_history(), "google_health_history")
+    entry.async_on_unload(async_track_time_interval(hass, import_history, timedelta(hours=1)))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
