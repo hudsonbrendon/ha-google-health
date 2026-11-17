@@ -1,8 +1,17 @@
 <p align="center">
-  <img src="logo.png" alt="Google Health" height="70">
+  <img src="custom_components/google_health/brand/logo@2x.png" alt="Google Health" height="128">
 </p>
 
 # Google Health — Home Assistant (completa)
+
+[![Tests](https://github.com/hudsonbrendon/ha-google-health/actions/workflows/tests.yml/badge.svg)](https://github.com/hudsonbrendon/ha-google-health/actions/workflows/tests.yml)
+[![Hassfest](https://github.com/hudsonbrendon/ha-google-health/actions/workflows/hassfest.yml/badge.svg)](https://github.com/hudsonbrendon/ha-google-health/actions/workflows/hassfest.yml)
+[![HACS](https://github.com/hudsonbrendon/ha-google-health/actions/workflows/validate.yml/badge.svg)](https://github.com/hudsonbrendon/ha-google-health/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/hudsonbrendon/ha-google-health?sort=semver)](https://github.com/hudsonbrendon/ha-google-health/releases)
+[![Downloads](https://img.shields.io/github/downloads/hudsonbrendon/ha-google-health/total)](https://github.com/hudsonbrendon/ha-google-health/releases)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.10.0%2B-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
+[![License](https://img.shields.io/github/license/hudsonbrendon/ha-google-health)](LICENSE)
 
 Substitui a integração **Google Health** do core (mesmo domínio `google_health`),
 que só traz 15 sensores básicos, por uma versão que usa praticamente toda a
@@ -16,6 +25,9 @@ que já existiam (mesmos `unique_id`), então nada precisa ser refeito.
 > [REVERSE_ENGINEERING.md](REVERSE_ENGINEERING.md).
 
 ## Instalação
+
+[![Abrir no HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hudsonbrendon&repository=ha-google-health&category=integration)
+[![Adicionar integração](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=google_health)
 
 1. Copie `custom_components/google_health` para `/config/custom_components/`
    (ou adicione o repositório no Marketplace/HACS como integração).

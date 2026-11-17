@@ -4,9 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from pathlib import Path
-import voluptuous as vol
 
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+import voluptuous as vol
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+)
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
@@ -196,7 +201,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         }
 
     async def importar_historico(call: ServiceCall) -> ServiceResponse:
-        from .statistics import async_import_history  # noqa: PLC0415
+        from .statistics import async_import_history
 
         entry = _entry(hass, call)
         res = await async_import_history(hass, entry.runtime_data.client, call.data["dias"])
@@ -204,7 +209,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         return {"linhas_gravadas": res}
 
     async def info_notificacoes(call: ServiceCall) -> ServiceResponse:
-        from .webhook import webhook_url  # noqa: PLC0415
+        from .webhook import webhook_url
 
         entry = _entry(hass, call)
         rt = entry.runtime_data

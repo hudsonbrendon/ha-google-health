@@ -28,7 +28,7 @@ def ts(value: Any) -> datetime | None:
     if not isinstance(value, str):
         return None
     try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))  # noqa: FURB162
     except ValueError:
         return None
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)

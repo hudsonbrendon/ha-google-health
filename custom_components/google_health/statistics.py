@@ -6,10 +6,10 @@ da última hora gravada (que é regravada, pois pode ter chegado dado depois).
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import logging
 from typing import Any
 
 from homeassistant.components.recorder import get_instance

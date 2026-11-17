@@ -6,9 +6,9 @@ Adota a config entry, as credenciais OAuth e as entidades da integração do cor
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -16,8 +16,14 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     aiohttp_client,
+)
+from homeassistant.helpers import (
     config_validation as cv,
+)
+from homeassistant.helpers import (
     device_registry as dr,
+)
+from homeassistant.helpers import (
     issue_registry as ir,
 )
 from homeassistant.helpers.config_entry_oauth2_flow import (
@@ -97,15 +103,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoogleHealthConfigEntry)
     else:
         ir.async_delete_issue(hass, DOMAIN, f"extra_scopes_{entry.entry_id}")
 
-    from . import webhook  # noqa: PLC0415 — depende de runtime_data
-    from .statistics import async_import_history  # noqa: PLC0415 — recorder é opcional
+    from . import webhook
+    from .statistics import async_import_history
 
     webhook.register(hass, entry)
 
     async def import_history(_now: datetime | None = None) -> None:
         try:
             entry.runtime_data.history = await async_import_history(hass, client)
-        except Exception:  # noqa: BLE001 — histórico nunca derruba a integração
+        except Exception:
             _LOGGER.exception("Falha ao importar histórico do Google Health")
 
     # Primeira carga (até 1 ano) em segundo plano; depois de hora em hora.

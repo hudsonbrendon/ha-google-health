@@ -7,9 +7,9 @@ conta real. Formatos em REVERSE_ENGINEERING.md.
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, date, datetime
-import logging
 from typing import Any
 
 from aiohttp import ClientError, ClientSession
